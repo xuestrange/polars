@@ -161,3 +161,26 @@ def test_int_range_input_shape_multiple_values() -> None:
         pl.ComputeError, match="`start` must contain exactly one value, got 2 values"
     ):
         pl.int_range(multiple, multiple, eager=True)
+
+
+def test_int_ranges_broadcasting() -> None:
+    df = pl.DataFrame({"int": [1, 2, 3]})
+    result = df.select(
+        pl.int_ranges("int", 3).alias("end"),
+        pl.int_ranges(1, "int").alias("start"),
+    )
+    expected = pl.DataFrame(
+        {
+            "end": [
+                [1, 2],
+                [2],
+                [],
+            ],
+            "start": [
+                [],
+                [1],
+                [1, 2],
+            ],
+        }
+    )
+    assert_frame_equal(result, expected)
