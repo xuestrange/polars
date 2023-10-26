@@ -82,6 +82,10 @@ class ParameterCollisionError(RuntimeError):
     """Exception raised when the same parameter occurs multiple times."""
 
 
+class PolarsExperimentalWarning(Warning):
+    """Warning raised when experimental functionality is used."""
+
+
 class PolarsInefficientMapWarning(Warning):
     """Warning raised when a potentially slow `apply` operation is performed."""
 

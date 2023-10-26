@@ -89,6 +89,7 @@ from polars.utils.deprecation import (
     deprecate_renamed_function,
     deprecate_renamed_parameter,
 )
+from polars.utils.experimental import experimental
 from polars.utils.various import (
     _prepare_row_count_args,
     _process_null_values,
@@ -7661,6 +7662,7 @@ class DataFrame:
         """
         return wrap_ldf(self._df.lazy())
 
+    @experimental(version="0.19.13")
     def select(
         self, *exprs: IntoExpr | Iterable[IntoExpr], **named_exprs: IntoExpr
     ) -> DataFrame:
