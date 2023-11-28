@@ -1,9 +1,11 @@
+use std::cmp;
+
 use polars_core::prelude::*;
 use polars_core::series::Series;
 use polars_time::{time_range_impl, ClosedWindow, Duration};
 
 use super::utils::{
-    broadcast_scalar_inputs, ensure_range_bounds_contain_exactly_one_value,
+    broadcast_scalar_inputs_iter, ensure_range_bounds_contain_exactly_one_value,
     temporal_series_to_i64_scalar,
 };
 
@@ -37,23 +39,25 @@ pub(super) fn time_ranges(
     let start = &s[0];
     let end = &s[1];
 
-    let mut start = start.cast(&DataType::Time)?;
-    let mut end = end.cast(&DataType::Time)?;
+    let start = start.cast(&DataType::Time)?;
+    let end = end.cast(&DataType::Time)?;
 
-    (start, end) = broadcast_scalar_inputs(start, end)?;
+    let start_phys = start.to_physical_repr();
+    let end_phys = end.to_physical_repr();
+    let start_ca = start_phys.i64().unwrap();
+    let end_ca = end_phys.i64().unwrap();
 
-    let start = start.to_physical_repr();
-    let start = start.i64().unwrap();
-    let end = end.to_physical_repr();
-    let end = end.i64().unwrap();
+    let (start_iter, end_iter) = broadcast_scalar_inputs_iter(start_ca, end_ca)?;
+    let start_end_iter = std::iter::zip(start_iter, end_iter);
 
+    let len = cmp::max(start.len(), end.len());
     let mut builder = ListPrimitiveChunkedBuilder::<Int64Type>::new(
         "time_range",
-        start.len(),
-        start.len() * CAPACITY_FACTOR,
+        len,
+        len * CAPACITY_FACTOR,
         DataType::Int64,
     );
-    for (start, end) in start.into_iter().zip(end) {
+    for (start, end) in start_end_iter {
         match (start, end) {
             (Some(start), Some(end)) => {
                 let rng = time_range_impl("", start, end, interval, closed)?;
