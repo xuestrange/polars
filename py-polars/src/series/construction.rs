@@ -309,6 +309,43 @@ impl PySeries {
     }
 
     #[staticmethod]
+    unsafe fn _from_buffers(
+        py: Python,
+        pointer: usize,
+        offset: usize,
+        length: usize,
+        dtype: Wrap<DataType>,
+        base: &PyAny,
+    ) -> PyResult<Self> {
+        let dtype = dtype.0;
+        let base = base.to_object(py);
+
+        let arr_boxed = match dtype {
+            DataType::Int8 => unsafe { from_buffer_impl::<i8>(pointer, length, base) },
+            DataType::Int16 => unsafe { from_buffer_impl::<i16>(pointer, length, base) },
+            DataType::Int32 => unsafe { from_buffer_impl::<i32>(pointer, length, base) },
+            DataType::Int64 => unsafe { from_buffer_impl::<i64>(pointer, length, base) },
+            DataType::UInt8 => unsafe { from_buffer_impl::<u8>(pointer, length, base) },
+            DataType::UInt16 => unsafe { from_buffer_impl::<u16>(pointer, length, base) },
+            DataType::UInt32 => unsafe { from_buffer_impl::<u32>(pointer, length, base) },
+            DataType::UInt64 => unsafe { from_buffer_impl::<u64>(pointer, length, base) },
+            DataType::Float32 => unsafe { from_buffer_impl::<f32>(pointer, length, base) },
+            DataType::Float64 => unsafe { from_buffer_impl::<f64>(pointer, length, base) },
+            DataType::Boolean => {
+                unsafe { from_buffer_boolean_impl(pointer, offset, length, base) }?
+            },
+            dt => {
+                return Err(PyTypeError::new_err(format!(
+                    "`from_buffer` requires a physical type as input for `dtype`, got {dt}",
+                )))
+            },
+        };
+
+        let s = Series::from_arrow("", arr_boxed).unwrap().into();
+        Ok(s)
+    }
+
+    #[staticmethod]
     unsafe fn _from_buffer(
         py: Python,
         pointer: usize,
