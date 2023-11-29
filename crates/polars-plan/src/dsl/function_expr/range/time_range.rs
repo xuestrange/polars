@@ -1,13 +1,10 @@
-use std::cmp;
+use std::iter::{zip, Zip};
 
 use polars_core::prelude::*;
 use polars_core::series::Series;
 use polars_time::{time_range_impl, ClosedWindow, Duration};
 
-use super::utils::{
-    broadcast_scalar_inputs_iter, ensure_range_bounds_contain_exactly_one_value,
-    temporal_series_to_i64_scalar,
-};
+use super::utils::{ensure_range_bounds_contain_exactly_one_value, temporal_series_to_i64_scalar};
 
 const CAPACITY_FACTOR: usize = 5;
 
@@ -44,13 +41,45 @@ pub(super) fn time_ranges(
 
     let start_phys = start.to_physical_repr();
     let end_phys = end.to_physical_repr();
-    let start_ca = start_phys.i64().unwrap();
-    let end_ca = end_phys.i64().unwrap();
+    let start = start_phys.i64().unwrap();
+    let end = end_phys.i64().unwrap();
 
-    let (start_iter, end_iter) = broadcast_scalar_inputs_iter(start_ca, end_ca)?;
-    let start_end_iter = std::iter::zip(start_iter, end_iter);
+    // let (start_iter, end_iter) = broadcast_scalar_inputs_iter(start_ca, end_ca)?;
+    // let start_end_iter = std::iter::zip(start_iter, end_iter);
 
-    let len = cmp::max(start.len(), end.len());
+    match (start.len(), end.len()) {
+        (len_start, len_end) if len_start == len_end => {
+            let start_end_iter = zip(start, end);
+            time_ranges_impl(start_end_iter, len_start, interval, closed)
+        },
+        (1, len_end) => {
+            let start_scalar = unsafe { start.get_unchecked(0) };
+            let start_iter = std::iter::repeat(start_scalar).take(len_end);
+            let start_end_iter = zip(start_iter, end);
+            time_ranges_impl(start_end_iter, len_end, interval, closed)
+        },
+        (len_start, 1) => {
+            let end_scalar = unsafe { end.get_unchecked(0) };
+            let end_iter = std::iter::repeat(end_scalar).take(len_start);
+            let start_end_iter = zip(start, end_iter);
+            time_ranges_impl(start_end_iter, len_start, interval, closed)
+        },
+        (len_start, len_end) => {
+            polars_bail!(
+                ComputeError:
+                "lengths of `start` ({}) and `end` ({}) do not match",
+                len_start, len_end
+            )
+        },
+    }
+}
+
+fn time_ranges_impl(
+    start_end_iter: Zip<impl Iterator<Item = Option<i64>>, impl Iterator<Item = Option<i64>>>,
+    len: usize,
+    interval: Duration,
+    closed: ClosedWindow,
+) -> PolarsResult<Series> {
     let mut builder = ListPrimitiveChunkedBuilder::<Int64Type>::new(
         "time_range",
         len,
