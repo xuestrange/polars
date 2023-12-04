@@ -37,8 +37,6 @@ mod moment;
 mod pct_change;
 #[cfg(feature = "rank")]
 mod rank;
-#[cfg(feature = "replace")]
-mod replace;
 #[cfg(feature = "rle")]
 mod rle;
 #[cfg(feature = "rolling_window")]

@@ -148,7 +148,7 @@ ffi_plugin = ["libloading", "polars-ffi"]
 hive_partitions = []
 peaks = ["polars-ops/peaks"]
 cov = ["polars-ops/cov"]
-replace = ["polars-ops/replace"]
+replace = []
 
 bigidx = ["polars-core/bigidx"]
 

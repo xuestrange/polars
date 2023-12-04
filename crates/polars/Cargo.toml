@@ -197,7 +197,7 @@ rle = ["polars-lazy?/rle"]
 extract_groups = ["polars-lazy?/extract_groups"]
 peaks = ["polars-lazy/peaks"]
 cov = ["polars-lazy/cov"]
-replace = ["polars-ops/replace", "polars-lazy?/replace"]
+replace = ["polars-lazy?/replace"]
 
 test = [
   "lazy",

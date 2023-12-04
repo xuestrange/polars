@@ -39,6 +39,8 @@ mod pow;
 mod random;
 #[cfg(feature = "range")]
 mod range;
+#[cfg(feature = "replace")]
+mod replace;
 #[cfg(feature = "rolling_window")]
 mod rolling;
 #[cfg(feature = "round_series")]
@@ -1013,11 +1015,11 @@ impl From<FunctionExpr> for SpecialEq<Arc<dyn SeriesUdf>> {
             EwmVar { options } => map!(ewm::ewm_var, options),
             #[cfg(feature = "replace")]
             Replace => {
-                map_as_slice!(dispatch::replace)
+                map_as_slice!(replace::replace)
             },
             #[cfg(feature = "replace")]
             ReplaceWithDefault => {
-                map_as_slice!(dispatch::replace_with_default)
+                map_as_slice!(replace::replace_with_default)
             },
         }
     }
